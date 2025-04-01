@@ -25,8 +25,22 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Initialize AWS Bedrock client
-bedrock_client = boto3.client('bedrock-runtime')
+# Load AWS credentials from environment variables
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+AWS_REGION_NAME = os.environ.get("AWS_REGION_NAME", "us-east-1")  # Default to us-east-1 if not set
+
+if not AWS_ACCESS_KEY_ID or not AWS_SECRET_ACCESS_KEY:
+    st.error("AWS credentials not found. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.")
+    st.stop()
+
+# Initialize AWS Bedrock client with environment variables
+bedrock_client = boto3.client(
+    'bedrock-runtime',
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name=AWS_REGION_NAME
+)
 
 # Step 1: Clone GitHub Repo into a unique folder
 def clone_repo(repo_url):
@@ -119,7 +133,7 @@ prompt_template = """You are an expert code assistant tasked with answering ques
 3. Reference specific parts of the snippets from the code repo (e.g., function names or key logic) to support your answer.
 4. If the query involves a function or class, describe its purpose, inputs, outputs, and key logic.
 5. Keep the response technical and focused on the query, but ensure it is complete and fully addresses the question.
-6. Only respond to questions that are relevant to code. If a question contains inappropriate language, is unrelated to coding, or does not pertain to the provided code, respond with: 'Ask a question specific to the codebase.
+6. Only respond to questions that are relevant to code. If a question contains inappropriate language, is unrelated to coding, or does not pertain to the provided code, respond with: 'Ask a question specific to the codebase.'
 
 ### Answer:
 """
