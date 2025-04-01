@@ -1,0 +1,9 @@
+streamlit
+streamlit-chat
+gitpython
+langchain
+langchain-aws
+langchain-community
+boto3
+nbformat
+faiss-cpu
