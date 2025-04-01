@@ -27,4 +27,4 @@ export AWS_REGION_NAME='your-region'  # e.g., us-east-1
 ```
 
 ##  Future Improvements
--  For querying languages link C,C++,Java and Javascript.
+-  For querying languages like C,C++,Java and Javascript.
