@@ -1,0 +1,23 @@
+Question: What is the main purpose of the Movie Review Analyzer project?
+Answer: The Movie Review Analyzer project aims to analyze and predict the sentiments (positive or negative) of movie reviews using the IMDB dataset, leveraging the Bag of Words technique for vectorization and a Multinomial Naive Bayes model for classification, with a Streamlit app providing a user interface for predictions.
+
+Question: Which dataset is used for training the sentiment analysis model?
+Answer: The project uses the IMDB Dataset of 50K Movie Reviews from Kaggle, loaded and preprocessed with pandas for training the sentiment analysis model.
+
+Question: What technique is used for feature extraction in the codebase?
+Answer: The codebase employs the Bag of Words technique for feature extraction, implemented using scikit-learn’s CountVectorizer to convert preprocessed review text into numerical vectors for model training.
+
+Question: What algorithm is used to train the sentiment prediction model, and what is its precision?
+Answer: The sentiment prediction model is trained using the Multinomial Naive Bayes algorithm from scikit-learn, achieving a precision of 0.88 on the test set.
+
+Question: Which libraries are used for text preprocessing and data manipulation?
+Answer: The project uses NLTK (Natural Language Toolkit) for text preprocessing (e.g., tokenization, cleaning) and pandas for data manipulation and analysis.
+
+Question: What steps are involved in the data preprocessing phase of the project?
+Answer: Data preprocessing involves loading the IMDB dataset with pandas, cleaning the text data using NLTK (e.g., removing stop words, punctuation), and preparing it for vectorization with the Bag of Words technique using CountVectorizer.
+
+Question: Instead of the Bag of Words technique, what alternative can be used for feature extraction, and why might it be better?
+Answer: Instead of Bag of Words, TF-IDF (Term Frequency-Inverse Document Frequency) vectorization can be used, implemented via scikit-learn’s TfidfVectorizer. It might be better because it weighs terms by their importance across the dataset, reducing the impact of frequent but less informative words (e.g., "the"), potentially improving model performance on nuanced sentiments.
+
+Question: Instead of Multinomial Naive Bayes, what other algorithm could be used for sentiment prediction, and why?
+Answer: Instead of Multinomial Naive Bayes, a Support Vector Machine (SVM) with a linear kernel (from scikit-learn’s SVC) could be used. SVM might be better because it can handle high-dimensional data well and find an optimal decision boundary, potentially improving accuracy on complex review patterns, though it may require more computational resources than Naive Bayes.
