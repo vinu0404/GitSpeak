@@ -1,6 +1,5 @@
 # GitSpeak
-
-**GitSpeak** is an interactive Streamlit-based chatbot that lets you explore and query codebases from GitHub repositories. Powered by AWS Bedrock and Langchain, it supports `.py`,`.ipynb`,`.c`,`.c++` & `.js` files, allowing users to ask technical questions about the code. With multi-chat functionality, and chat deletion options, GitSpeak is designed for developers and researchers.
+GitSpeak is  Streamlit-based chatbot that lets you explore and query codebases from GitHub repositories. Uses AWS Bedrock and Langchain, it supports Python (`.py`) and Jupyter Notebook (`.ipynb`) files, allowing users to ask technical questions about the code. Multi-chat functionality and it is designed for developers and researchers.
 
 
 ## Features
