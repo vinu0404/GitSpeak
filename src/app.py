@@ -11,31 +11,153 @@ from langchain.memory import ConversationBufferWindowMemory
 from langchain.chains import RetrievalQA
 import boto3
 
-# Custom CSS
+# Custom CSS with Fixes
 st.markdown("""
     <style>
-    .chat-container { height: calc(100vh - 180px); overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 15px; background-color: rgba(255, 255, 255, 0.1); backdrop-filter: blur(5px); margin-top: 5px; }
-    .user-message { background: linear-gradient(90deg, #00b4d8, #0077b6); color: white; border-radius: 15px 15px 0 15px; padding: 12px; margin: 10px 0; max-width: 70%; float: right; clear: both; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-    .bot-message { background-color: #ffffff; color: #333; border-radius: 15px 15px 15px 0; padding: 12px; margin: 10px 0; max-width: 70%; float: left; clear: both; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-    .input-container { position: fixed; bottom: 10px; width: calc(90% - 20px); max-width: 800px; display: flex; align-items: center; gap: 10px; background-color: rgba(255, 255, 255, 0.9); padding: 10px; border-radius: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-    .stTextInput > div > div > input { border-radius: 20px; padding: 10px; border: none; background-color: #f0f2f6; color: #333; }
-    .stButton > button { background: linear-gradient(90deg, #00b4d8, #0077b6); color: white; border-radius: 20px; padding: 10px 20px; border: none; height: 40px; font-weight: bold; }
-    .title { font-size: 1.8em; text-shadow: 0 2px 4px rgba(0,0,0,0.5); margin-bottom: 5px; }
-    .delete-button { background: linear-gradient(90deg, #ff4d4d, #cc0000); color: white; border-radius: 15px; padding: 5px 10px; border: none; height: 30px; font-size: 0.9em; }
-    .edit-button { background: linear-gradient(90deg, #f4a261, #e76f51); color: white; border-radius: 15px; padding: 5px 10px; border: none; height: 30px; font-size: 0.9em; }
+    /* Main container and background */
+    .chat-container { 
+        height: calc(100vh - 180px); 
+        overflow-y: auto; 
+        border: 1px solid rgba(255, 255, 255, 0.1); 
+        border-radius: 15px; 
+        padding: 15px; 
+        background: linear-gradient(135deg, #2D3748, #4A5568); 
+        backdrop-filter: blur(5px); 
+        margin-top: 5px; 
+    }
+    /* User message bubble */
+    .user-message { 
+        background: linear-gradient(90deg, #38B2AC, #2C7A7B); 
+        color: #FFFFFF; 
+        border-radius: 15px 15px 0 15px; 
+        padding: 12px; 
+        margin: 10px 0; 
+        max-width: 70%; 
+        float: right; 
+        clear: both; 
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2); 
+    }
+    /* Bot message bubble */
+    .bot-message { 
+        background-color: #E2E8F0; 
+        color: #1A202C; 
+        border-radius: 15px 15px 15px 0; 
+        padding: 12px; 
+        margin: 10px 0; 
+        max-width: 70%; 
+        float: left; 
+        clear: both; 
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2); 
+    }
+    /* Input container */
+    .input-container { 
+        position: fixed; 
+        bottom: 10px; 
+        width: calc(90% - 20px); 
+        max-width: 800px; 
+        display: flex; 
+        align-items: center; 
+        gap: 10px; 
+        background-color: #EDF2F7; 
+        padding: 10px; 
+        border-radius: 25px; 
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15); 
+    }
+    /* Text input field */
+    .stTextInput > div > div > input { 
+        border-radius: 20px; 
+        padding: 10px; 
+        border: none; 
+        background-color: #F7FAFC; 
+        color: #1A202C; 
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); 
+        height: 38px; 
+        line-height: 18px; 
+        width: 100%; 
+    }
+    /* Hide the default input label */
+    .stTextInput > label { 
+        display: none; 
+    }
+    /* General buttons (e.g., Send, New Chat, Load Repository) */
+    .stButton > button { 
+        background: linear-gradient(90deg, #805AD5, #6B46C1); 
+        color: #FFFFFF; 
+        border-radius: 20px; 
+        padding: 0 20px; 
+        border: none; 
+        height: 38px; 
+        font-weight: bold; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+        line-height: 38px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+    }
+    /* Title styling */
+    .title { 
+        font-size: 1.8em; 
+        color: #4FD1C5; 
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3); 
+        margin-bottom: 5px; 
+    }
+    /* Delete button */
+    .delete-button { 
+        background: linear-gradient(90deg, #F56565, #C53030); 
+        color: #FFFFFF; 
+        border-radius: 15px; 
+        padding: 5px 10px; 
+        border: none; 
+        height: 30px; 
+        font-size: 0.9em; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+    }
+    /* Edit button */
+    .edit-button { 
+        background: linear-gradient(90deg, #ED8936, #DD6B20); 
+        color: #FFFFFF; 
+        border-radius: 15px; 
+        padding: 5px 10px; 
+        border: none; 
+        height: 30px; 
+        font-size: 0.9em; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+    }
+    /* Sidebar styling */
+    [data-testid="stSidebar"] { 
+        background-color: #2D3748; 
+        color: #E2E8F0; 
+    }
+    /* Sidebar header */
+    [data-testid="stSidebar"] .stHeader { 
+        color: #4FD1C5; 
+    }
+    /* Hide Streamlit footer */
+    [data-testid="stFooter"] { 
+        display: none !important; 
+    }
+    /* Ensure full height to push footer off-screen if needed */
+    html, body { 
+        height: 100%; 
+        margin: 0; 
+        padding: 0; 
+    }
+    .stApp { 
+        height: 100vh; 
+        overflow: hidden; 
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# Load AWS credentials from environment variables
+# Initialize AWS Bedrock client with environment variables for Render
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
 AWS_REGION_NAME = os.environ.get("AWS_REGION_NAME", "us-east-1")  # Default to us-east-1 if not set
 
 if not AWS_ACCESS_KEY_ID or not AWS_SECRET_ACCESS_KEY:
-    st.error("AWS credentials not found. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.")
+    st.error("AWS credentials not found. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables in Render.")
     st.stop()
 
-# Initialize AWS Bedrock client with environment variables
 bedrock_client = boto3.client(
     'bedrock-runtime',
     aws_access_key_id=AWS_ACCESS_KEY_ID,
@@ -149,8 +271,6 @@ prompt_template = """You are an expert technical assistant designed to help user
 4. If the snippets lack sufficient information, use your general technical expertise to answer, explaining how the query relates to typical programming practices or the likely context of the codebase.
 5. Keep the response focused, technical, and complete, addressing all parts of the query.
 6. For questions unrelated to the codebase or technical topics (e.g., inappropriate or off-topic), respond with: 'Please ask a question related to the codebase or technical concerns.'
-
-### Answer:
 """
 prompt = PromptTemplate(input_variables=["question", "context"], template=prompt_template)
 
@@ -272,7 +392,7 @@ def main():
                         # Display user message with Edit button
                         col1, col2 = st.columns([5, 1])
                         with col1:
-                            message(msg["content"], is_user=True, key=f"{st.session_state.current_session_id}_{i}_user")
+                            message(f"You: {msg['content']}", is_user=True, key=f"{st.session_state.current_session_id}_{i}_user", avatar_style=None)
                         with col2:
                             if st.button("Edit", key=f"edit_{st.session_state.current_session_id}_{i}", help="Edit this message"):
                                 current_session["edit_index"] = i
@@ -285,9 +405,7 @@ def main():
                                 if st.button("Save", key=f"save_{i}"):
                                     old_content = current_session["messages"][i]["content"]
                                     current_session["messages"][i]["content"] = edited_text
-                                    # Update memory by removing old query and adding new one
                                     current_session["memory"].chat_memory.messages[i // 2 * 2].content = edited_text
-                                    # Re-run the query with edited text
                                     with st.spinner("Updating response..."):
                                         new_answer = run_qa(edited_text)
                                         current_session["messages"][i + 1]["content"] = new_answer
@@ -300,14 +418,14 @@ def main():
                                     st.rerun()
                     else:
                         # Display assistant message without edit option
-                        message(msg["content"], is_user=False, key=f"{st.session_state.current_session_id}_{i}_assistant")
+                        message(f"Bot: {msg['content']}", is_user=False, key=f"{st.session_state.current_session_id}_{i}_assistant", avatar_style=None)
 
             # Input for new messages
             with st.container():
                 st.markdown('<div class="input-container">', unsafe_allow_html=True)
                 col1, col2 = st.columns([4, 1])
                 with col1:
-                    user_input = st.text_input("Ask a question", key=f"input_{st.session_state.current_session_id}_{current_session['input_key']}", placeholder="Type your message here...")
+                    user_input = st.text_input("", key=f"input_{st.session_state.current_session_id}_{current_session['input_key']}", placeholder="Ask a question...")
                 with col2:
                     send_button = st.button("Send", key=f"send_{st.session_state.current_session_id}")
                 st.markdown('</div>', unsafe_allow_html=True)
