@@ -51,9 +51,11 @@ def clone_repo(repo_url):
         git.Repo.clone_from(repo_url, local_path)
     return local_path
 
-# Step 2: Parse Code Structure (.py and .ipynb)
+# Step 2: Parse Code Structure (.py, .ipynb, .c, .cpp, .js)
 def extract_code_units(file_path):
     units = []
+    
+    # Python (.py)
     if file_path.endswith(".py"):
         with open(file_path, "r", encoding="utf-8") as f:
             code = f.read()
@@ -67,7 +69,11 @@ def extract_code_units(file_path):
                     metadata = {"file": file_path, "name": node.name, "type": type(node).__name__}
                     units.append((chunk, metadata))
         except SyntaxError:
-            return []
+            # If parsing fails, include the whole file
+            metadata = {"file": file_path, "name": "unknown", "type": "file"}
+            units.append((code, metadata))
+    
+    # Jupyter Notebook (.ipynb)
     elif file_path.endswith(".ipynb"):
         with open(file_path, "r", encoding="utf-8") as f:
             notebook = nbformat.read(f, as_version=4)
@@ -82,7 +88,18 @@ def extract_code_units(file_path):
                             metadata = {"file": file_path, "name": node.name, "type": type(node).__name__, "cell_index": notebook.cells.index(cell)}
                             units.append((chunk, metadata))
                 except SyntaxError:
-                    continue
+                    # If parsing fails, include the cell content
+                    metadata = {"file": file_path, "name": "unknown", "type": "cell", "cell_index": notebook.cells.index(cell)}
+                    units.append((code, metadata))
+    
+    # C, C++, JavaScript (.c, .cpp, .js)
+    elif file_path.endswith((".c", ".cpp", ".js")):
+        with open(file_path, "r", encoding="utf-8") as f:
+            code = f.read()
+        # Include the entire file content as a single chunk
+        metadata = {"file": file_path, "name": os.path.basename(file_path), "type": "file"}
+        units.append((code, metadata))
+    
     return units
 
 # Step 3: Process Repo and Build Vector Store
@@ -92,7 +109,7 @@ def build_vector_store(repo_url):
     code_units = []
     for root, _, files in os.walk(repo_path):
         for file in files:
-            if file.endswith((".py", ".ipynb")):
+            if file.endswith((".py", ".ipynb", ".c", ".cpp", ".js")):
                 file_path = os.path.join(root, file)
                 units = extract_code_units(file_path)
                 code_units.extend(units)
