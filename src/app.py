@@ -22,6 +22,7 @@ st.markdown("""
     .stButton > button { background: linear-gradient(90deg, #00b4d8, #0077b6); color: white; border-radius: 20px; padding: 10px 20px; border: none; height: 40px; font-weight: bold; }
     .title { font-size: 1.8em; text-shadow: 0 2px 4px rgba(0,0,0,0.5); margin-bottom: 5px; }
     .delete-button { background: linear-gradient(90deg, #ff4d4d, #cc0000); color: white; border-radius: 15px; padding: 5px 10px; border: none; height: 30px; font-size: 0.9em; }
+    .edit-button { background: linear-gradient(90deg, #f4a261, #e76f51); color: white; border-radius: 15px; padding: 5px 10px; border: none; height: 30px; font-size: 0.9em; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -69,7 +70,6 @@ def extract_code_units(file_path):
                     metadata = {"file": file_path, "name": node.name, "type": type(node).__name__}
                     units.append((chunk, metadata))
         except SyntaxError:
-            # If parsing fails, include the whole file
             metadata = {"file": file_path, "name": "unknown", "type": "file"}
             units.append((code, metadata))
     
@@ -88,7 +88,6 @@ def extract_code_units(file_path):
                             metadata = {"file": file_path, "name": node.name, "type": type(node).__name__, "cell_index": notebook.cells.index(cell)}
                             units.append((chunk, metadata))
                 except SyntaxError:
-                    # If parsing fails, include the cell content
                     metadata = {"file": file_path, "name": "unknown", "type": "cell", "cell_index": notebook.cells.index(cell)}
                     units.append((code, metadata))
     
@@ -96,7 +95,6 @@ def extract_code_units(file_path):
     elif file_path.endswith((".c", ".cpp", ".js")):
         with open(file_path, "r", encoding="utf-8") as f:
             code = f.read()
-        # Include the entire file content as a single chunk
         metadata = {"file": file_path, "name": os.path.basename(file_path), "type": "file"}
         units.append((code, metadata))
     
@@ -162,7 +160,8 @@ def initialize_session(repo_name):
         "messages": [],
         "memory": ConversationBufferWindowMemory(memory_key="chat_history", k=5, return_messages=True, output_key="answer"),
         "vector_store": None,
-        "input_key": 0
+        "input_key": 0,
+        "edit_index": None  # Tracks which message is being edited
     }
 
 def get_unique_repo_name(repo_url, existing_names):
@@ -191,24 +190,24 @@ def main():
             st.session_state.current_session_id = None
 
         # Display existing chats with delete buttons
-        for session_id in list(st.session_state.chats.keys()):  # Use list() to avoid runtime modification issues
+        for session_id in list(st.session_state.chats.keys()):
             col1, col2 = st.columns([3, 1])
             with col1:
                 if st.button(session_id, key=f"select_{session_id}"):
                     st.session_state.current_session_id = session_id
                     st.session_state.new_chat = False
-                    st.session_state.delete_confirm = None  # Reset confirmation
+                    st.session_state.delete_confirm = None
             with col2:
                 if st.button("🗑️", key=f"delete_{session_id}", help="Delete this chat", on_click=lambda sid=session_id: st.session_state.update({"delete_confirm": sid})):
-                    pass  # Trigger confirmation
+                    pass
 
-            # Confirmation dialog
+            # Confirmation dialog for deletion
             if st.session_state.delete_confirm == session_id:
                 st.write(f"Are you sure you want to delete '{session_id}'?")
                 col_confirm1, col_confirm2 = st.columns(2)
                 with col_confirm1:
                     if st.button("OK", key=f"confirm_{session_id}"):
-                        del st.session_state.chats[session_id]  # Delete chat and vector store
+                        del st.session_state.chats[session_id]
                         if st.session_state.current_session_id == session_id:
                             st.session_state.current_session_id = None
                         st.session_state.delete_confirm = None
@@ -266,13 +265,44 @@ def main():
                 current_session["memory"].save_context({"query": query}, {"answer": result["answer"]})
                 return result["answer"]
 
+            # Display chat messages with edit functionality
             if current_session["messages"]:
                 for i, msg in enumerate(current_session["messages"]):
                     if msg["role"] == "user":
-                        message(msg["content"], is_user=True, key=f"{st.session_state.current_session_id}_{i}_user")
+                        # Display user message with Edit button
+                        col1, col2 = st.columns([5, 1])
+                        with col1:
+                            message(msg["content"], is_user=True, key=f"{st.session_state.current_session_id}_{i}_user")
+                        with col2:
+                            if st.button("Edit", key=f"edit_{st.session_state.current_session_id}_{i}", help="Edit this message"):
+                                current_session["edit_index"] = i
+
+                        # Edit mode for this message
+                        if current_session["edit_index"] == i:
+                            edited_text = st.text_input("Edit your message", value=msg["content"], key=f"edit_input_{i}")
+                            col_save, col_cancel = st.columns(2)
+                            with col_save:
+                                if st.button("Save", key=f"save_{i}"):
+                                    old_content = current_session["messages"][i]["content"]
+                                    current_session["messages"][i]["content"] = edited_text
+                                    # Update memory by removing old query and adding new one
+                                    current_session["memory"].chat_memory.messages[i // 2 * 2].content = edited_text
+                                    # Re-run the query with edited text
+                                    with st.spinner("Updating response..."):
+                                        new_answer = run_qa(edited_text)
+                                        current_session["messages"][i + 1]["content"] = new_answer
+                                        current_session["memory"].chat_memory.messages[i // 2 * 2 + 1].content = new_answer
+                                    current_session["edit_index"] = None
+                                    st.rerun()
+                            with col_cancel:
+                                if st.button("Cancel", key=f"cancel_edit_{i}"):
+                                    current_session["edit_index"] = None
+                                    st.rerun()
                     else:
+                        # Display assistant message without edit option
                         message(msg["content"], is_user=False, key=f"{st.session_state.current_session_id}_{i}_assistant")
 
+            # Input for new messages
             with st.container():
                 st.markdown('<div class="input-container">', unsafe_allow_html=True)
                 col1, col2 = st.columns([4, 1])
