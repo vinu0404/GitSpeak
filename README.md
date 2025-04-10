@@ -6,6 +6,7 @@ GitSpeak is  Streamlit-based chatbot that lets you explore and query codebases f
 
 - **Chat with Codebases**: Load a GitHub repo and ask questions about its code (e.g., "What does `create_app` do? How to Improve the code ,Give code for that").
 - **Multi-Chat Support**: Start new chats for different repositories, with each chat named after the repo .
+- **Edit Chats**: Modify your previous questions in a chat session (e.g., rephrase "What does main do?" to "What is the purpose of main()?") and get updated responses from the assistant.
 - **Delete Chats**: Remove individual chats (and their vector stores) with a confirmation prompt, while keeping repo clones intact.
 - **Supports `.py`,`.ipynb`,`.c`,`.c++` & `.js`**: Extracts functions and classes from  .c, c++ and .js scripts and for python and Jupyter Notebooks using AST parsing .
 - **Persistent Repo Storage**: Clones repos into a `repos/` folder with unique names, avoiding overwrites.
