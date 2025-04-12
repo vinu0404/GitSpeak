@@ -10,16 +10,7 @@ from langchain.vectorstores import FAISS as LangchainFAISS
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 import boto3
-from nltk.translate.bleu_score import sentence_bleu
-from rouge_score import rouge_scorer
-from nltk.translate.meteor_score import meteor_score
-from nltk.tokenize import word_tokenize
 from sklearn.metrics.pairwise import cosine_similarity
-import nltk
-
-# Download NLTK data (run once if not already downloaded)
-nltk.download('punkt')
-nltk.download('wordnet')
 
 # Initialize AWS Bedrock client
 bedrock_client = boto3.client('bedrock-runtime')
@@ -130,25 +121,7 @@ def load_ground_truth(file_path="ground_truth.txt"):
                 ground_truths.append(lines[i + 1].replace("Answer:", "").strip())
     return questions, ground_truths
 
-# Custom Evaluation Metrics
-def compute_bleu(reference, hypothesis):
-    """Compute BLEU score between reference and hypothesis."""
-    ref_tokens = word_tokenize(reference.lower())
-    hyp_tokens = word_tokenize(hypothesis.lower())
-    return sentence_bleu([ref_tokens], hyp_tokens, weights=(0.25, 0.25, 0.25, 0.25))
-
-def compute_rouge(reference, hypothesis):
-    """Compute ROUGE-L score between reference and hypothesis."""
-    scorer = rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True)
-    scores = scorer.score(reference, hypothesis)
-    return scores['rougeL'].fmeasure
-
-def compute_meteor(reference, hypothesis):
-    """Compute METEOR score between pre-tokenized reference and hypothesis."""
-    ref_tokens = word_tokenize(reference.lower()) 
-    hyp_tokens = word_tokenize(hypothesis.lower()) 
-    return meteor_score([ref_tokens], hyp_tokens)  
-
+# Custom Evaluation Metric
 def compute_cosine_similarity(embeddings_model, text1, text2):
     """Compute cosine similarity using Bedrock embeddings."""
     emb1 = embeddings_model.embed_query(text1)
@@ -204,28 +177,14 @@ def evaluate_rag(repo_url="https://github.com/vinu0404/Movie-Review-Analyzer.git
         model_kwargs={"dimensions": 512, "normalize": True}
     )
 
-    # Compute metrics
-    bleu_scores = []
-    rouge_scores = []
-    meteor_scores = []
+    # Compute cosine similarity
     cosine_scores = []
-
     for gen_answer, gt_answer in zip(generated_answers, ground_truths):
-        bleu = compute_bleu(gt_answer, gen_answer)
-        rouge = compute_rouge(gt_answer, gen_answer)
-        meteor = compute_meteor(gt_answer, gen_answer)
         cosine = compute_cosine_similarity(embeddings, gen_answer, gt_answer)
-
-        bleu_scores.append(bleu)
-        rouge_scores.append(rouge)
-        meteor_scores.append(meteor)
         cosine_scores.append(cosine)
 
     # Aggregate results
     avg_results = {
-        "BLEU": np.mean(bleu_scores),
-        "ROUGE-L": np.mean(rouge_scores),
-        "METEOR": np.mean(meteor_scores),
         "Cosine Similarity": np.mean(cosine_scores)
     }
 
@@ -236,11 +195,11 @@ def evaluate_rag(repo_url="https://github.com/vinu0404/Movie-Review-Analyzer.git
 
     # Detailed results
     print("\nDetailed Scores:")
-    for i, (q, gen, gt, bleu, rouge, meteor, cosine) in enumerate(zip(questions, generated_answers, ground_truths, bleu_scores, rouge_scores, meteor_scores, cosine_scores)):
+    for i, (q, gen, gt, cosine) in enumerate(zip(questions, generated_answers, ground_truths, cosine_scores)):
         print(f"Q{i+1}: {q}")
         print(f"Generated: {gen}")
         print(f"Ground Truth: {gt}")
-        print(f"BLEU: {bleu:.2f}, ROUGE-L: {rouge:.2f}, METEOR: {meteor:.2f}, Cosine Similarity: {cosine:.2f}\n")
+        print(f"Cosine Similarity: {cosine:.2f}\n")
 
     return avg_results
 
