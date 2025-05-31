@@ -10,6 +10,8 @@ from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.chains import RetrievalQA
 import boto3
+from dotenv import load_dotenv
+load_dotenv()
 
 # Custom CSS with Fixes
 st.markdown("""
